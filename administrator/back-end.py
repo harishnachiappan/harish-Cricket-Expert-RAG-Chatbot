@@ -1,4 +1,5 @@
 import boto3
+import boto3.session
 import streamlit as stl
 import uuid
 import os
@@ -8,17 +9,31 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
 
 
-)
-
 client_s3 = boto3.client("s3")
-BUCKET_NAME = 'cricket-rules-saurabh-genaiproj'
-bedrock_client = boto3.client(service_name="bedrock-runtime")
+BUCKET_NAME = os.getenv('BUCKET_NAME')
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('AWS_REGION')
+print(AWS_REGION)
+print(AWS_ACCESS_KEY_ID)
+
+
+bedrock_client = boto3.client(service_name="bedrock-runtime",region_name=AWS_REGION)
 bedrock_embeddings = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1", client=bedrock_client)
 
 def text_splitter(pages, chunk_size, chunk_overlap):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     docs = text_splitter.split_documents(pages)
     return docs
+
+def simple_tokenizer(text):
+    return len(text.split())
+
+def count_tokens(docs):
+    total_tokens = 0
+    for doc in docs:
+        total_tokens += simple_tokenizer(doc.page_content)
+    return total_tokens
 
 def create_vector_store(request_id, docs):
     vectorstore_faiss=FAISS.from_documents(docs, bedrock_embeddings)
@@ -43,6 +58,8 @@ def main():
 
         splitted_docs = text_splitter(pdf_pages, 1000, 200)
         stl.write(f"Splitted Docs length: {len(splitted_docs)}")
+        token_count = count_tokens(splitted_docs)
+        stl.write(f"Estimated Total Tokens: {token_count}")
         stl.write("Vector Store Creation")
         result = create_vector_store(unique_id, splitted_docs)
         
