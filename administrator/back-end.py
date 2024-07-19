@@ -2,6 +2,8 @@ import boto3
 import boto3.session
 import streamlit as stl
 import uuid
+import tempfile
+
 import os
 from langchain_community.embeddings import BedrockEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -38,10 +40,22 @@ def count_tokens(docs):
 def create_vector_store(request_id, docs):
     vectorstore_faiss=FAISS.from_documents(docs, bedrock_embeddings)
     file_name=f"{request_id}.bin"
-    folder_path="/tmp/"
-    vectorstore_faiss.save_local(index_name=file_name, folder_path=folder_path)
+    folder_path = "./temp"
+    os.makedirs(folder_path, exist_ok=True)
+    try:
+        vectorstore_faiss.save_local(index_name=file_name, folder_path=folder_path)
+        print(f"Files saved locally in '{folder_path}'.")
+    except Exception as e:
+        print(f"Failed to save FAISS vector store locally: {e}")
+        return False
+    
+    print("Contents of the directory after saving files:")
+    for root, dirs, files in os.walk(folder_path):
+        for file in files:
+            print(os.path.join(root, file))
     client_s3.upload_file(Filename=folder_path + "/" + file_name + ".faiss", Bucket=BUCKET_NAME, Key="my_faiss.faiss")
     client_s3.upload_file(Filename=folder_path + "/" + file_name + ".pkl", Bucket=BUCKET_NAME, Key="my_faiss.pkl")
+    return True
 
 def main():
     stl.write("test admin")
@@ -49,6 +63,7 @@ def main():
     if file is not None:
         unique_id = str(uuid.uuid4())
         stl.write(f"Generated Request ID: {unique_id}")
+        print("")
         pdf_file_name = f"{unique_id}.pdf"
         with open(pdf_file_name, "wb") as file_writer:
             file_writer.write(file.getvalue())
@@ -62,7 +77,7 @@ def main():
         stl.write(f"Estimated Total Tokens: {token_count}")
         stl.write("Vector Store Creation")
         result = create_vector_store(unique_id, splitted_docs)
-        
+        print(result)
         if result:
             stl.write("Completed, PDF processed successfully")
         else:
