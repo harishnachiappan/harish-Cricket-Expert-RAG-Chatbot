@@ -3,11 +3,14 @@
 ## Description:
 This application uses Retrieval-Augmented Generation (RAG) to provide accurate cricket-related answers by combining document retrieval with generative AI. The admin uploads PDFs, which are split into chunks, vectorized, and saved as indices in an S3 bucket using the Titan Embedding Model. Users query the chatbot, which downloads the index files, builds a local vector store, performs similarity searches to retrieve relevant documents, and uses a prompt template to generate responses from the Large Language Model (LLM).
 
+## Stack:
+Python, Docker, Amazon Bedrock, LangChain, Amazon S3
 ## Models:
 1. Amazon Titan Text Embeddings V1
 2. Amazon Titan Text Lite
 
 ## Application Workflow:
+
 ### Admin - Uploads PDF
 
     └── PDF Split
