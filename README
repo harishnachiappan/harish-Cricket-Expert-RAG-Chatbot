@@ -1,7 +1,7 @@
 # Cricket Expert Chatbot Application - Generative AI
 
 
-Admin - Uploads PDF
+### Admin - Uploads PDF
 
     └── PDF Split
         └── Distributed in Chunks 
@@ -9,7 +9,7 @@ Admin - Uploads PDF
                 └── Titan Embedding Model leveraged to create vector representation
                     └── Save indices (S3 Bucket)
 
-User - Query passed in chatbot input
+### User - Query passed in chatbot input
 
 
     └── Index files are downloaded from S3 and saved locally to build vector store
