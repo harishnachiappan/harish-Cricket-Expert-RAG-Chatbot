@@ -31,13 +31,12 @@ os.makedirs(folder_path, exist_ok=True)
 def get_index():
     try:
         client_s3.download_file(Bucket=BUCKET_NAME, Key="my_faiss.faiss", Filename=f"{folder_path}/my_faiss.faiss")
-        stl.write("Successfully downloaded my_faiss.faiss")
+        stl.write("Successfully downloaded my_faiss.faiss from S3 bucket")
     except Exception as e:
         stl.write(f"Failed to download my_faiss.faiss: {e}")
-
     try:
         client_s3.download_file(Bucket=BUCKET_NAME, Key="my_faiss.pkl", Filename=f"{folder_path}/my_faiss.pkl")
-        stl.write("Successfully downloaded my_faiss.pkl")
+        stl.write("Successfully downloaded my_faiss.pkl from S3 bucket")
     except Exception as e:
         stl.write(f"Failed to download my_faiss.pkl: {e}")
 
@@ -73,12 +72,52 @@ def get_response(llm,vectorstore, question ):
     return answer['result']
 
 def main():
-    stl.write("test end-user")
+
+
+    stl.set_page_config(layout='wide')
+    stl.markdown(
+        """
+        <style>
+        .stApp {
+            background-color: white;
+            font-family: 'Helvetica', sans-serif;
+            font-weight: 300;
+            color: black;
+        }
+        .stApp h1 {
+            font-family: 'Helvetica', sans-serif;
+            font-weight: 300;
+            color: black;
+        }
+        .stTextInput > div > div > input {
+            border: 2px solid black;
+            color: white;
+            background-color: black;
+        }
+        .stTextInput > div > div > input::placeholder {
+            color: white;
+        }
+        .stTextInput > label {
+            color: black;
+        }
+        .stButton > button {
+            border: 2px solid black;
+            color: white;
+            background-color: black;
+        }
+        </style>
+        """, unsafe_allow_html=True
+    )
+
+
+
+    stl.title("The Cricket Expert Chatbot by [Saurabh Sonawane](https://www.linkedin.com/in/saurabh112000/)")
+    stl.write("Thank you for visiting the page! You can ask any question about Cricket and learn more about the game. Currently, the bot does not support query memory, so each question will have to be independent of the previous one. (Trying not to go broke :)) ")
 
     get_index()
 
     dir_list = os.listdir(folder_path)
-    stl.write(f"Files in {folder_path}")
+    stl.write(f"Files stored in {folder_path}")
     stl.write(dir_list)
 
     faiss_index = FAISS.load_local(
@@ -97,13 +136,13 @@ def main():
 
             input_text = f"User: {question}\nBot:"
             text_generation_config = {
-                "temperature": 0.3,  # Default value, adjust if necessary
-                "topP": 0.5,  # Default value, adjust if necessary
-                "maxTokenCount": 500,
+                "temperature": 0.9,  
+                "topP": 0.2,  
+                "maxTokenCount": 1000,
                 "stopSequences": ["\n"]
             }
 
-            # get_response
+       
             stl.write(get_response(llm, faiss_index, input_text))
             stl.success("Done")
 
