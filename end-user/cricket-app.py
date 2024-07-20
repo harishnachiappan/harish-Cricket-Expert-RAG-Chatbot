@@ -1,9 +1,14 @@
+'''
+This is the code that builds the fron-end user app, i.e. the functioning chatbot
+'''
+
+
+
 import boto3
 import boto3.session
 import streamlit as stl
 import uuid
 import tempfile
-
 import os
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
@@ -20,15 +25,13 @@ AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_REGION = os.getenv('AWS_REGION')
 
-
-
-
 bedrock_client = boto3.client(service_name="bedrock-runtime",region_name=AWS_REGION)
 bedrock_embeddings = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1", client=bedrock_client)
 folder_path = "./temp"
 os.makedirs(folder_path, exist_ok=True)
 
-def get_index():
+
+def get_index(): #retrieving indices saved in S3, make sure to add exceptions
     try:
         client_s3.download_file(Bucket=BUCKET_NAME, Key="my_faiss.faiss", Filename=f"{folder_path}/my_faiss.faiss")
         stl.write("Successfully downloaded my_faiss.faiss from S3 bucket")
@@ -40,34 +43,34 @@ def get_index():
     except Exception as e:
         stl.write(f"Failed to download my_faiss.pkl: {e}")
 
-
+'''
+Research token pricing/input output before you choose the model. 
+Note: You need to submit special request form for Anthropic models
+'''
 def get_llm():
     llm=Bedrock(model_id="amazon.titan-text-lite-v1", client=bedrock_client)
     return llm
 
 
+
 def get_response(llm,vectorstore, question ):
     prompt_template = """
     Human: Please use the given context to provide concise answer to the question
-    If you don't know the answer, just say that you don't know, don't try to make up an answer.
+    If you don't know the answer to the question, communicate that the information that the user is seeking
+    is not within your area of expertise and you are open to answering questions within given context
     <context>
     {context}
     </context>
     Question: {question}
     Assistant:"""
-    PROMPT = PromptTemplate(
-        template=prompt_template, input_variables=["context", "question"]
-    )
+
+    PROMPT = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
 
     qa = RetrievalQA.from_chain_type(
     llm=llm,
     chain_type="stuff",
-    retriever=vectorstore.as_retriever(
-        search_type="similarity", search_kwargs={"k": 5}
-    ),
-    return_source_documents=True,
-    chain_type_kwargs={"prompt": PROMPT}
-)
+    retriever=vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 5}),
+    return_source_documents=True,chain_type_kwargs={"prompt": PROMPT})
     answer=qa({"query":question})
     return answer['result']
 
@@ -115,7 +118,6 @@ def main():
     stl.write("Thank you for visiting the page! You can ask any question about Cricket and learn more about the game. Currently, the bot does not support query memory, so each question will have to be independent of the previous one. (Trying not to go broke :)) ")
 
     get_index()
-
     dir_list = os.listdir(folder_path)
     stl.write(f"Files stored in {folder_path}")
     stl.write(dir_list)
@@ -127,8 +129,7 @@ def main():
         allow_dangerous_deserialization=True
     )
 
-    stl.write("INDEX IS READY")
-
+    stl.write("INDEX READY")
     question = stl.text_input("Please ask your question")
     if stl.button("Ask Question"):
         with stl.spinner("Querying..."):
